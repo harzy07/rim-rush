@@ -1,10 +1,10 @@
 {"steps":[
-  {"action":"click","point":{"x":120,"y":120}},
+  {"action":"click","point":{"x":60,"y":400}},
   {"action":"press","key":"Space"},
   {"action":"keyDown","key":"ArrowUp"},
-  {"action":"wait","durationMs":900},
+  {"action":"wait","durationMs":1800},
   {"action":"keyDown","key":"ArrowLeft"},
-  {"action":"wait","durationMs":500},
+  {"action":"wait","durationMs":700},
   {"action":"keyUp","key":"ArrowLeft"},
-  {"action":"wait","durationMs":600}
+  {"action":"wait","durationMs":400}
 ]}
