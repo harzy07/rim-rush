@@ -1,0 +1,1 @@
+{"steps":[{"action":"click","point":{"x":60,"y":420}},{"action":"wait","durationMs":1200},{"action":"press","key":"Space"},{"action":"keyDown","key":"ArrowUp"},{"action":"wait","durationMs":1400}]}

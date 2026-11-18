@@ -1,5 +1,6 @@
 # Desktop smoke test: reload, screenshot, drive with the keyboard, print debug logs.
 param([string]$Steps = '{"steps":[{"action":"click","point":{"x":60,"y":420}},{"action":"press","key":"Space"},{"action":"keyDown","key":"ArrowUp"},{"action":"wait","durationMs":4000},{"action":"keyUp","key":"ArrowUp"},{"action":"keyDown","key":"ArrowRight"},{"action":"wait","durationMs":900}]}')
+if (Test-Path $Steps) { $Steps = (Get-Content $Steps -Raw) -replace '\s+', ' ' }
 function Invoke-Iw([string]$a) { cmd /c "npx @iwsdk/cli $a 2>&1" | Out-String }
 Invoke-Iw 'browser reload' | Out-Null
 Start-Sleep 8

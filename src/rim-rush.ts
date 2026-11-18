@@ -86,7 +86,15 @@ interface Mover {
   z: number;
 }
 
+interface Coin {
+  mesh: Mesh;
+  x: number;
+  z: number;
+  taken: boolean;
+}
+
 interface Level {
+  coins: Coin[];
   title: string;
   objective: string;
   start: [number, number, number]; // x, z, heading
@@ -178,6 +186,9 @@ class Sfx {
   }
   grab(): void {
     this.tone(900, 700, 0.05, 'square', 0.04);
+  }
+  coin(): void {
+    this.tone(990, 1980, 0.12, 'square', 0.12);
   }
 }
 
@@ -355,9 +366,48 @@ const WALLS: Array<[number, number, number, number]> = [
   [0, -2.2, 0, 0],
 ];
 
-function buildShell(root: Group, rects: Rect[]): void {
-  const wallMat = new MeshStandardMaterial({ color: 0xe9e0d2, roughness: 0.9 });
+const STRIPE_COLORS = [0xff6f91, 0x4dd0e1, 0xffc75f, 0x845ec2, 0x00c9a7, 0xff9671];
+
+/** Floating room-name sign that turns to face the player. */
+function buildSign(text: string, color: string): Mesh {
+  const tex = canvasTexture(512, 128, (c) => {
+    c.fillStyle = color;
+    c.beginPath();
+    c.roundRect(4, 4, 504, 120, 40);
+    c.fill();
+    c.fillStyle = '#ffffff';
+    c.font = 'bold 72px sans-serif';
+    c.textAlign = 'center';
+    c.fillText(text, 256, 90);
+  });
+  const sign = new Mesh(new PlaneGeometry(1.2, 0.3), new MeshBasicMaterial({ map: tex, transparent: true, side: DoubleSide }));
+  return sign;
+}
+
+function buildShell(root: Group, rects: Rect[], signs: Mesh[]): void {
+  const wallMat = new MeshStandardMaterial({ color: 0xfff8ec, roughness: 0.9 });
   const trimMat = mat(0xffffff, 0.6);
+  let stripe = 0;
+  for (const [x1, z1, x2, z2] of WALLS) {
+    // Bright accent band on every wall to give each room a playful look.
+    const band = new Mesh(
+      new BoxGeometry(Math.abs(x2 - x1) + WALL_T + 0.02, 0.35, Math.abs(z2 - z1) + WALL_T + 0.02),
+      new MeshStandardMaterial({ color: STRIPE_COLORS[stripe++ % STRIPE_COLORS.length], roughness: 0.6 }),
+    );
+    band.position.set((x1 + x2) / 2, 1.05, (z1 + z2) / 2);
+    root.add(band);
+  }
+  for (const [text, color, x, z] of [
+    ['BEDROOM', '#845ec2', -3, 4],
+    ['LIVING ROOM', '#00a5c7', 3, 4],
+    ['DINING', '#ff9671', -3, -4],
+    ['KITCHEN', '#00c9a7', 3, -4],
+  ] as const) {
+    const s = buildSign(text, color);
+    s.position.set(x, 2.2, z);
+    root.add(s);
+    signs.push(s);
+  }
   for (const [x1, z1, x2, z2] of WALLS) {
     const sx = Math.abs(x2 - x1) + WALL_T;
     const sz = Math.abs(z2 - z1) + WALL_T;
@@ -540,8 +590,53 @@ function buildMarker(g: Group, x: number, z: number): Mesh {
   );
   ring.rotation.x = -Math.PI / 2;
   ring.position.set(x, 0.015, z);
+  // Tall light beam so the goal is visible from other rooms' doorways.
+  const beam = new Mesh(
+    new CylinderGeometry(GOAL_RADIUS * 0.6, GOAL_RADIUS * 0.75, WALL_H, 24, 1, true),
+    new MeshBasicMaterial({ color: 0x66ff99, transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false }),
+  );
+  beam.rotation.x = Math.PI / 2; // undo the ring's rotation for the child
+  beam.position.set(0, 0, WALL_H / 2);
+  beam.rotation.set(Math.PI / 2, 0, 0);
+  ring.add(beam);
   g.add(ring);
   return ring;
+}
+
+const coinGeo = new CylinderGeometry(0.16, 0.16, 0.035, 24);
+coinGeo.rotateX(Math.PI / 2);
+const coinMat = new MeshStandardMaterial({ color: 0xffc400, emissive: new Color(0xffa000), emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.25 });
+
+function buildCoins(g: Group, spots: Array<[number, number]>): Coin[] {
+  return spots.map(([x, z]) => {
+    const mesh = new Mesh(coinGeo, coinMat);
+    mesh.position.set(x, 0.9, z);
+    g.add(mesh);
+    return { mesh, x, z, taken: false };
+  });
+}
+
+/** Simple cartoon hand (palm + fingers) used on desktop where tracked hands don't exist. */
+function buildCartoonHand(side: Side): Group {
+  const g = new Group();
+  const skin = mat(0xf1c27d, 0.6);
+  const sleeve = mat(0x26a69a, 0.8);
+  const palm = new Mesh(new BoxGeometry(0.035, 0.085, 0.09), skin);
+  g.add(palm);
+  for (let i = 0; i < 4; i++) {
+    const f = new Mesh(new BoxGeometry(0.03, 0.02, 0.07), skin);
+    f.position.set(side === 'left' ? 0.025 : -0.025, 0.035 - i * 0.022, -0.06);
+    f.rotation.y = side === 'left' ? -0.5 : 0.5;
+    g.add(f);
+  }
+  const thumb = new Mesh(new BoxGeometry(0.025, 0.02, 0.05), skin);
+  thumb.position.set(side === 'left' ? 0.02 : -0.02, 0.05, -0.02);
+  g.add(thumb);
+  const arm = new Mesh(new CylinderGeometry(0.03, 0.036, 0.26, 10), sleeve);
+  arm.position.set(0, 0.06, 0.15);
+  arm.rotation.x = Math.PI / 2 - 0.5;
+  g.add(arm);
+  return g;
 }
 
 function buildLevels(): Level[] {
@@ -553,6 +648,7 @@ function buildLevels(): Level[] {
     const rects: Rect[] = [];
     buildMeal(group, 4.6, 0.76, -1.5, 'breakfast');
     levels.push({
+      coins: buildCoins(group, [[-2.1, 1.3], [-1.6, -0.9], [-1.0, -2.4], [0.8, -2.8], [2.4, -2.2]]),
       title: 'LEVEL 1 \u00B7 BREAKFAST',
       objective: 'Roll from the bedroom to the kitchen table',
       start: [-2.6, 2.6, 0],
@@ -582,6 +678,7 @@ function buildLevels(): Level[] {
     }
     buildMeal(group, -2.9, 0.76, -4.0, 'lunch');
     levels.push({
+      coins: buildCoins(group, [[2.9, 1.8], [2.6, 0.4], [1.6, -1.0], [0.5, -2.8], [-1.0, -3.3]]),
       title: 'LEVEL 2 \u00B7 LUNCH',
       objective: 'From the sofa to the dining table. Mind the clutter!',
       start: [3.4, 3.4, 0],
@@ -631,6 +728,7 @@ function buildLevels(): Level[] {
       mesh, ax, az, bx, bz, speed, radius, t: 0, dir: 1, x: ax, z: az,
     });
     levels.push({
+      coins: buildCoins(group, [[-1.2, 5.0], [1.0, 5.2], [2.0, 3.0], [2.6, -0.8], [4.5, -3.0], [4.5, -5.0]]),
       title: 'LEVEL 3 \u00B7 DINNER',
       objective: 'Bedroom to the kitchen counter. Watch out for the vacuum and the dog!',
       start: [-3.0, 4.2, -Math.PI / 2],
@@ -693,6 +791,13 @@ export class RimRushSystem extends createSystem({}) {
   private bumps = 0;
   private bumpCooldown = 0;
   private stars = 0;
+  private coinsTaken = 0;
+  private signs: Mesh[] = [];
+  private fakeHands: Record<Side, Group> = { left: buildCartoonHand('left'), right: buildCartoonHand('right') };
+  private pushPhase: Record<Side, number> = { left: 0, right: 0 };
+  private confetti: Mesh[] = [];
+  private confettiVel: Float32Array = new Float32Array(0);
+  private confettiTime = 0;
 
   // Input
   private hands: Record<Side, HandState> = { left: makeHand(), right: makeHand() };
@@ -710,7 +815,18 @@ export class RimRushSystem extends createSystem({}) {
     this.rig.add(this.chairPivot);
     this.scene.fog = null;
 
-    buildShell(this.houseRoot, this.sharedRects);
+    buildShell(this.houseRoot, this.sharedRects, this.signs);
+    this.chairPivot.add(this.fakeHands.left, this.fakeHands.right);
+    // Confetti pieces for level wins (reused every time).
+    const confettiColors = [0xff6f91, 0x4dd0e1, 0xffc75f, 0x845ec2, 0x00c9a7, 0xffffff];
+    const pieceGeo = new PlaneGeometry(0.05, 0.03);
+    for (let i = 0; i < 80; i++) {
+      const p = new Mesh(pieceGeo, new MeshBasicMaterial({ color: confettiColors[i % confettiColors.length], side: DoubleSide }));
+      p.visible = false;
+      this.houseRoot.add(p);
+      this.confetti.push(p);
+    }
+    this.confettiVel = new Float32Array(80 * 3);
     this.levels = buildLevels();
     for (const level of this.levels) {
       level.group.visible = false;
@@ -810,8 +926,10 @@ export class RimRushSystem extends createSystem({}) {
       c.fillStyle = this.timeLeft < 15 ? '#ff5252' : '#66ff99';
       c.font = 'bold 72px sans-serif';
       c.fillText(`${Math.ceil(this.timeLeft)}s`, w / 2 - 170, 160);
-      c.fillStyle = '#ffd54f';
-      c.fillText(`Bumps ${this.bumps}`, w / 2 + 150, 160);
+      c.fillStyle = '#ffc400';
+      c.fillText(`\u25CF ${this.coinsTaken}/${level.coins.length}`, w / 2 + 40, 160);
+      c.fillStyle = '#ff8a80';
+      c.fillText(`\u2716 ${this.bumps}`, w / 2 + 280, 160);
     } else if (this.state === 'ready') {
       c.fillStyle = '#66ff99';
       c.font = 'bold 60px sans-serif';
@@ -836,7 +954,7 @@ export class RimRushSystem extends createSystem({}) {
       c.fillText(starText(this.stars), w / 2, 210);
       c.fillStyle = '#ffffff';
       c.font = '38px sans-serif';
-      c.fillText(`${Math.ceil(this.timeLeft)}s left \u00B7 ${this.bumps} bumps`, w / 2, 280);
+      c.fillText(`${Math.ceil(this.timeLeft)}s left \u00B7 ${this.coinsTaken}/${level.coins.length} coins \u00B7 ${this.bumps} bumps`, w / 2, 280);
       const best = readNumber(`rimrush.stars.${this.levelIndex}`);
       c.fillText(`Best for this level: ${starText(best)}`, w / 2, 335);
       c.fillStyle = '#dddfe3';
@@ -862,10 +980,19 @@ export class RimRushSystem extends createSystem({}) {
   }
 
   private calibrate(): void {
-    this.camera.updateMatrix();
-    this.headLocal.copy(this.camera.position);
-    this.tmpV.set(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    this.yaw0 = Math.atan2(-this.tmpV.x, -this.tmpV.z);
+    if (this.inXR) {
+      this.camera.updateMatrix();
+      this.headLocal.copy(this.camera.position);
+      this.tmpV.set(0, 0, -1).applyQuaternion(this.camera.quaternion);
+      this.yaw0 = Math.atan2(-this.tmpV.x, -this.tmpV.z);
+    } else {
+      // Desktop: seated eye height, camera just behind your head looking down at
+      // your lap so the legs, wheels and pushing hands are on screen.
+      this.headLocal.set(0, 1.2, 0);
+      this.yaw0 = 0;
+      this.camera.position.set(0, 1.22, 0.02);
+      this.camera.rotation.set(-0.5, 0, 0);
+    }
     this.chairPivot.position.set(this.headLocal.x, 0, this.headLocal.z);
     this.chairPivot.rotation.set(0, this.yaw0, 0);
     // Seat about 0.75 m below the eyes. Never below the floor.
@@ -877,6 +1004,10 @@ export class RimRushSystem extends createSystem({}) {
     this.arrow.position.set(0, this.headLocal.y - 0.42, -0.45);
     this.hud.position.set(0, this.headLocal.y + 0.38, -1.5);
     this.hud.rotation.set(0.22, 0, 0);
+    if (!this.inXR) {
+      this.hud.position.set(0, this.headLocal.y + 0.02, -1.5);
+      this.hud.rotation.set(-0.3, 0, 0);
+    }
     this.fwd.set(-Math.sin(this.yaw0), 0, -Math.cos(this.yaw0));
     this.right.set(Math.cos(this.yaw0), 0, -Math.sin(this.yaw0));
     this.calibrated = true;
@@ -904,6 +1035,11 @@ export class RimRushSystem extends createSystem({}) {
     this.timeLeft = level.time;
     this.bumps = 0;
     this.bumpCooldown = 0;
+    this.coinsTaken = 0;
+    for (const c of level.coins) {
+      c.taken = false;
+      c.mesh.visible = true;
+    }
     for (const m of level.movers) {
       m.t = 0;
       m.dir = 1;
@@ -937,6 +1073,16 @@ export class RimRushSystem extends createSystem({}) {
     this.vL = this.vR = this.omega = 0;
     this.sfx.win();
     this.hudDirty = true;
+    // Confetti burst around the player.
+    for (let i = 0; i < this.confetti.length; i++) {
+      const p = this.confetti[i];
+      p.visible = true;
+      p.position.set(this.x + (Math.random() - 0.5) * 0.6, 1.6 + Math.random() * 0.4, this.z + (Math.random() - 0.5) * 0.6);
+      this.confettiVel[i * 3] = (Math.random() - 0.5) * 3;
+      this.confettiVel[i * 3 + 1] = 1.5 + Math.random() * 2;
+      this.confettiVel[i * 3 + 2] = (Math.random() - 0.5) * 3;
+    }
+    this.confettiTime = 3;
   }
 
   private failLevel(): void {
@@ -1203,6 +1349,18 @@ export class RimRushSystem extends createSystem({}) {
       }
     }
 
+    // Coins: +3 seconds each
+    for (const c of level.coins) {
+      if (!c.taken && Math.hypot(this.x - c.x, this.z - c.z) < CHAIR_RADIUS + 0.3) {
+        c.taken = true;
+        c.mesh.visible = false;
+        this.coinsTaken++;
+        this.timeLeft += 3;
+        this.sfx.coin();
+        this.hudDirty = true;
+      }
+    }
+
     this.timeLeft -= dt;
     const shown = Math.ceil(this.timeLeft);
     if (shown !== this.hudTimer) {
@@ -1267,9 +1425,40 @@ export class RimRushSystem extends createSystem({}) {
 
     this.leftRim.scale.setScalar(this.hands.left.pinching ? 1.12 : 1);
     this.rightRim.scale.setScalar(this.hands.right.pinching ? 1.12 : 1);
-    const showRims = this.inXR && (this.mode === 'two' || this.state !== 'playing');
+    const showRims = this.mode === 'two' || this.state !== 'playing';
     this.leftRim.visible = showRims;
     this.rightRim.visible = showRims;
+
+    // Desktop (or untracked) hands: cartoon hands ride the rims and stroke with each push.
+    for (const side of ['left', 'right'] as const) {
+      const fake = this.fakeHands[side];
+      fake.visible = !this.inXR || !this.hands[side].tracked;
+      if (!fake.visible) continue;
+      const v = side === 'left' ? this.vL : this.vR;
+      this.pushPhase[side] += Math.max(0, v) * dt * 5;
+      const stroke = this.state === 'playing' && v > 0.05 ? Math.sin(this.pushPhase[side]) : 0;
+      const rim = side === 'left' ? this.leftRim : this.rightRim;
+      fake.position.set(rim.position.x * 0.92, rim.position.y + 0.1 + stroke * 0.03, rim.position.z - 0.02 - stroke * 0.09);
+      fake.rotation.set(-0.3 + stroke * 0.25, 0, 0);
+    }
+
+    // Spinning coins, signs that face you, confetti.
+    for (const c of level.coins) if (!c.taken) c.mesh.rotation.y = time * 3;
+    this.camera.getWorldPosition(this.tmpV);
+    for (const s of this.signs) s.rotation.y = Math.atan2(this.tmpV.x - s.position.x, this.tmpV.z - s.position.z);
+    if (this.confettiTime > 0) {
+      this.confettiTime -= dt;
+      for (let i = 0; i < this.confetti.length; i++) {
+        const p = this.confetti[i];
+        this.confettiVel[i * 3 + 1] -= 4 * dt;
+        p.position.x += this.confettiVel[i * 3] * dt;
+        p.position.y = Math.max(0.02, p.position.y + this.confettiVel[i * 3 + 1] * dt);
+        p.position.z += this.confettiVel[i * 3 + 2] * dt;
+        p.rotation.x += dt * 7;
+        p.rotation.y += dt * 5;
+        if (this.confettiTime <= 0) p.visible = false;
+      }
+    }
 
     if (this.hudDirty) this.drawHud();
   }
