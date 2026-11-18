@@ -1,52 +1,55 @@
-# Rim Rush: Devpost submission draft
+# Rim Rush: Meal Run, Devpost submission draft
 
 Replace everything in [brackets] before submitting.
 
-**Name:** Rim Rush
+**Name:** Rim Rush: Meal Run
 
 **Tagline (max 140 chars):**
-Sit in a neon wheelchair and push the rims with your bare hands. Grab orbs, dodge cones, and don't hit your own light trail.
+Push your wheelchair through a real-feeling home with your bare hands. Get to breakfast, lunch and dinner before your food goes cold.
 
 **Track:** Gaming
 **Division:** New Experience (built from scratch on November 18, 2026)
 **Build:** [https://YOUR-GITHUB-USERNAME.github.io/rim-rush/] (open it in the Meta Quest Browser and tap Enter XR)
 **Video:** [YouTube/Vimeo link, public, under 3 minutes]
 
-## Description (~450 words)
+## Description (~420 words)
 
 ### Inspiration
-Most VR games treat a wheelchair as a background prop, or don't think about it at all. We wanted the wheelchair to be the hero: fast, skilled, and fun. And since you play seated anyway, the most natural VR locomotion for a seated player is a wheelchair. Pushing a rim is already a hand motion, so we built a game around it.
+Getting from the bedroom to the kitchen is an everyday trip for a wheelchair user, and narrow doorways, a laundry basket left out, or a pet in the way make it harder. Most VR games ignore wheelchairs. We wanted to put players in the seat and make the trip fun and a little challenging, using only their hands.
 
 ### What it does
-In Rim Rush you sit in a wheelchair in a 20 × 20 m neon arena. When you look down, you see your seat, your legs, and two big wheels. You drive by pushing the rims with your hands. Collect glowing orbs to make your light trail longer, like Snake or a light cycle, and avoid the walls, the cones, and your own trail.
+You sit in a wheelchair in a four-room home: bedroom, living room, dining room, and kitchen. Look down and you see your legs, your shoes on the footplate, and the wheels at your sides. Your tracked hands drive the chair.
 
-- **Two-rim mode:** two rims float at chest height, where hand tracking is most reliable. Pinch a rim and push your hand forward to roll that wheel. Push one side harder to turn. Hold a pinched rim still to brake. Pull back to reverse. The wheelchair coasts between pushes, like a real one.
-- **One-hand mode:** hold a pinch for 2 seconds on the start screen. Your pinched hand then works like a joystick (forward to drive, sideways to turn), so players with one hand or limited mobility can play.
-- **Comfort:** you're seated, the turns are gentle, and a vignette darkens the edges of your view while you move or turn. Press V to toggle it.
-- **Daily arena:** the cone layout changes every day and is the same for everyone that day. Your best score for today and your all-time best are saved.
-- **Quick sessions:** a run takes 1 to 3 minutes. The first orb is straight ahead so new players learn to push right away. It starts with one gesture and pauses when the headset loses focus.
+- **Push the rims:** two grab rims sit at lower-chest height, where hand tracking is most reliable. Pinch a rim and push forward to roll, push one side harder to turn, hold still to brake, and pull back to reverse. The chair coasts between pushes, and the wheels and rims turn as it rolls.
+- **Three levels:**
+  - **Breakfast:** from the bedroom, through the dining room, to the kitchen table.
+  - **Lunch:** from the sofa to the dining table, past laundry, toys and plants on the floor.
+  - **Dinner:** from the bedroom, through the living room, to the kitchen counter, with a robot vacuum and the dog moving in your path.
+- **Challenge:** each level has a timer. Bumping furniture stops the chair, like it would in real life, and costs 2 seconds. You earn up to 3 stars per level, and your best stars are saved.
+- **Guidance and comfort:** a green arrow on the chair points to the meal and a glowing ring marks the goal. Turns are gentle, the view turns around your head, and a vignette darkens the edges of your view while you move (press V to toggle it).
+- **One-hand mode:** hold a pinch for 2 seconds on a menu screen. Your pinched hand then works like a joystick, so players with one hand or limited mobility can play.
 
 ### How we built it
 - Meta's Immersive Web SDK (IWSDK) with WebXR immersive-vr and hand tracking
-- Pinch detection from the WebXR hand joints (thumb tip and index tip distance, with hysteresis) plus the platform's select events as a backup
-- Hand motion is measured in the XR-origin's local space, so your own movement through the arena never counts as a push
-- Differential-drive physics, like a real wheelchair. The game rotates the play space around your head, so turning never swings your view sideways
-- All art is procedural and the sound effects are synthesized live with WebAudio, so there's nothing to download
+- Pinch detection from the WebXR hand joints (thumb and index tip distance, with hysteresis) plus the platform's select events as a backup
+- Hand motion is measured in the XR-origin's local space, so riding never counts as a push
+- Differential-drive wheelchair physics with circle-against-box collision for walls and furniture
+- All of the home, furniture, food, and chair is built from code, and sound effects are synthesized live with WebAudio, so there's nothing to download
 - Tested in the IWER emulator with scripted hand input [add "and on a Meta Quest" if you tested on a headset]
 
 ### Challenges
-Hands resting near your lap fall outside the hand-tracking area, so real-height rims would lose tracking. We raised the grab rims to chest height and kept the real wheels at your sides, where you see them when you look down. We also tuned first-person movement for comfort with gentle turns and the vignette.
+Hands resting near your lap fall outside the hand-tracking area, so we raised the grab rims to lower-chest height and kept the real wheels at your sides. Doorways are 1.2 m wide, which is tight but fair for a 0.7 m chair.
 
 ### What's next
-Gaze steering for Meta VR Glasses, tricks and drift scoring, ghost replays, an online daily leaderboard, and playtests with wheelchair users to tune the feel.
+More homes and an apartment with ramps and elevators, gaze steering for Meta VR Glasses, ghost replays, and playtests with wheelchair users to tune the feel.
 
 ## Hand interactions (optional field)
-Every interaction is a pinch: pinch both hands to start, pinch and push to roll, hold still to brake, and hold one pinch for one-hand mode. You never need a controller. We're excited that VR can turn a real-world skill, pushing a wheelchair, into a game mechanic that anyone can learn in seconds.
+Every interaction is a pinch: pinch both hands to start, pinch and push to roll, hold still to brake, and hold one pinch for one-hand mode. You never need a controller.
 
 ## Video plan (under 3 minutes, best part first)
-1. 0:00–0:10: first-person, push off and grab the first orb straight ahead.
-2. 0:10–0:40: look down at the chair and your legs, then turn by pushing one rim.
-3. 0:40–1:10: the light trail grows, a near miss around the cones, a crash, and the score screen.
-4. 1:10–1:30: one-hand mode.
-5. 1:30–1:50: the daily arena and best scores.
-6. End card: "Rim Rush. Hands-first. Seated. For everyone."
+1. 0:00–0:10: look down at your legs and wheels, pinch, push off.
+2. 0:10–0:45: Breakfast. Turn through the bedroom doorway, follow the arrow, reach the kitchen table, earn stars.
+3. 0:45–1:20: Lunch. Weave around the laundry and toys, bump a box, and the timer drops.
+4. 1:20–1:50: Dinner. Dodge the robot vacuum and the dog, reach the counter, "BON APPÉTIT!"
+5. 1:50–2:10: one-hand mode.
+6. End card: "Rim Rush: Meal Run. Hands-first. Seated. For everyone."
