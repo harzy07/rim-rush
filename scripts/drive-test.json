@@ -1,0 +1,10 @@
+{"steps":[
+  {"action":"click","point":{"x":120,"y":120}},
+  {"action":"press","key":"Space"},
+  {"action":"keyDown","key":"ArrowUp"},
+  {"action":"wait","durationMs":900},
+  {"action":"keyDown","key":"ArrowLeft"},
+  {"action":"wait","durationMs":500},
+  {"action":"keyUp","key":"ArrowLeft"},
+  {"action":"wait","durationMs":600}
+]}
